@@ -63,18 +63,50 @@ function extFromUrl(url) {
   }
 }
 
+function firstArrayIn(obj, depth = 0) {
+  if (!obj || typeof obj !== 'object' || depth > 3) return [];
+  if (Array.isArray(obj)) return obj;
+  for (const key of Object.keys(obj)) {
+    const v = obj[key];
+    if (Array.isArray(v)) return v;
+  }
+  for (const key of Object.keys(obj)) {
+    const v = obj[key];
+    const found = firstArrayIn(v, depth + 1);
+    if (Array.isArray(found) && found.length) return found;
+  }
+  return [];
+}
+
+function pickIcon(entry) {
+  const icon = entry.icon || entry.image || entry.iconPath || entry.iconUrl || null;
+  if (!icon) return null;
+  if (typeof icon === 'string') return icon;
+  if (typeof icon === 'object') {
+    // try common nested fields
+    return icon.portrait || icon.preview_portrait || icon.shop_background || icon.store || icon.small || icon.large || null;
+  }
+  return null;
+}
+
 function mapTechialArray(kind, arr) {
   const roleFor = (entry) => {
-    const r = ((entry.role || entry.side || entry.type || '') + '').toLowerCase();
+    const r = ((entry.role || entry.side || entry.type || entry.category || '') + '').toLowerCase();
     if (r.includes('survivor')) return 'survivor';
     if (r.includes('killer')) return 'killer';
+    // Guess by kind for characters endpoint
+    if (kind === 'characters') {
+      const name = (entry.name || entry.full_name || '') + '';
+      if (/^the\s/i.test(name)) return 'killer';
+      return 'survivor';
+    }
     return undefined;
   };
   return arr.map((e) => {
-    const id = (e.id || e._id || e.slug || (e.name ? e.name.toLowerCase().replace(/[^a-z0-9]+/g,'_') : undefined));
-    const name = (e.name || e.perkName || e.displayName || e.title || '') + '';
+    const id = (e.id || e._id || e.slug || (e.perk_tag || e.name_tag) || (e.name ? e.name.toLowerCase().replace(/[^a-z0-9]+/g,'_') : undefined));
+    const name = (e.name || e.perk_name || e.displayName || e.title || '') + '';
     const description = (e.description || e.desc || e.perkDesc || e.text || '') + '';
-    const icon = e.icon || e.image || e.iconPath || e.iconUrl;
+    const iconRaw = pickIcon(e);
     const rarity = e.rarity || e.tier || e.color || undefined;
     const role = roleFor(e);
     const base = {
@@ -83,7 +115,7 @@ function mapTechialArray(kind, arr) {
       name,
       description,
       rarity,
-      icon,
+      icon: iconRaw,
       role,
       rules: [],
     };
@@ -110,7 +142,7 @@ function uniqById(arr) {
 (async function update() {
   await ensureDirs();
   let merged = {
-    version: '0.0.0',
+    version: '0.0.1',
     characters: [],
     items: [],
     addons: [],
@@ -123,7 +155,7 @@ function uniqById(arr) {
       const res = await fetch(s.url);
       if (!res.ok) throw new Error(`fetch failed ${res.status}`);
       const data = await res.json();
-      const arr = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : []);
+      const arr = firstArrayIn(data);
       const mapped = mapTechialArray(s.kind, arr);
       const withLocalIcons = await Promise.all(mapped.map(async (e) => {
         if (e.icon && /^https?:/i.test(e.icon)) await downloadIcon(e.id, e.icon);
@@ -142,7 +174,7 @@ function uniqById(arr) {
   }
 
   const dsOut = {
-    version: merged.version || '0.0.0',
+    version: merged.version || '0.0.1',
     characters: merged.characters,
     items: merged.items,
     addons: merged.addons,
