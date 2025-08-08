@@ -1,0 +1,24 @@
+{
+  "version": "0.0.1",
+  "characters": [
+    { "type": "character", "id": "survivor_dwight", "name": "Dwight Fairfield", "role": "survivor" },
+    { "type": "character", "id": "killer_trapper", "name": "The Trapper", "role": "killer" }
+  ],
+  "items": [
+    { "type": "item", "id": "medkit_builtin", "name": "Med-Kit", "role": "survivor", "charges": 24, "chargeRate": 1.0 }
+  ],
+  "addons": [
+    { "type": "addon", "id": "addon_sample", "name": "Sample Add-on", "role": "survivor" }
+  ],
+  "perks": [
+    { "type": "perk", "id": "perk_hyperfocus", "name": "Hyperfocus", "role": "survivor", "rules": [
+      { "id": "hyperfocus_speed_bonus", "target": "repairSpeed", "value": 0, "unit": "percent", "combination": "additive", "conditions": { "action": "repair" }, "stacks": { "tokenCounter": "hyperfocus", "perStackValue": 0, "maxStacks": 6 } }
+    ] },
+    { "type": "perk", "id": "perk_stakeout", "name": "Stake Out", "role": "survivor", "rules": [
+      { "id": "stakeout_convert", "target": "skillCheckBonus", "value": 0, "unit": "absolute", "combination": "additive", "conditions": { "action": "skill-check" }, "stacks": { "tokenCounter": "stakeout", "perStackValue": 1, "maxStacks": 8 } }
+    ] }
+  ],
+  "offerings": [
+    { "type": "offering", "id": "offering_sample", "name": "Sample Offering" }
+  ]
+}
