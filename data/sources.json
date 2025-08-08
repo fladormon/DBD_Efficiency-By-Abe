@@ -1,3 +1,7 @@
 [
-  { "name": "Local Sample", "url": "http://localhost:1420/data/compiled/dataset.json" }
+  { "name": "Techial Perks", "kind": "perks", "url": "https://dbd.tricky.lol/api/perks" },
+  { "name": "Techial Add-ons", "kind": "addons", "url": "https://dbd.tricky.lol/api/addons" },
+  { "name": "Techial Items", "kind": "items", "url": "https://dbd.tricky.lol/api/items" },
+  { "name": "Techial Offerings", "kind": "offerings", "url": "https://dbd.tricky.lol/api/offerings" },
+  { "name": "Techial Characters", "kind": "characters", "url": "https://dbd.tricky.lol/api/characters" }
 ]
