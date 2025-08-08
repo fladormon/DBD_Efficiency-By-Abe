@@ -1,0 +1,16 @@
+{
+  "base": {
+    "generatorRepairSeconds": 90,
+    "healOtherSeconds": 16,
+    "healSelfSeconds": 32,
+    "skillCheckGreatWindowMs": 150,
+    "skillCheckGoodWindowMs": 450,
+    "skillCheckIntervalSeconds": 10
+  },
+  "itemDefaults": {
+    "chargeRatePerSecond": 1
+  },
+  "multipliers": {
+    "teammateRepairEfficiency": [1, 1.85, 2.55, 3.05]
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "DBD Loadout Optimizer",
+  "version": "0.1.0",
+  "identifier": "com.example.dbdoptimizer",
+  "build": {
+    "beforeDevCommand": "vite",
+    "beforeBuildCommand": "vite build",
+    "devPath": "http://localhost:1420",
+    "distDir": "../dist"
+  },
+  "app": {
+    "windows": [
+      { "title": "DBD Loadout Optimizer", "width": 1280, "height": 800 }
+    ]
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["msi", "nsis", "app", "dmg", "deb"],
+    "windows": {
+      "wix": { "language": "en-US" }
+    }
+  },
+  "plugins": {},
+  "tauri": {
+    "allowlist": {
+      "fs": { "all": true },
+      "http": { "all": true }
+    }
+  }
+}

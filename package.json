@@ -1,0 +1,45 @@
+{
+  "name": "dbd-loadout-optimizer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Dead by Daylight Loadout Optimizer - Tauri + React + TypeScript + Vite",
+  "author": "",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "tauri:dev": "vite & cargo tauri dev",
+    "tauri:build": "vite build && cargo tauri build",
+    "test": "vitest run -c vitest.config.ts",
+    "test:watch": "vitest -c vitest.config.ts",
+    "update:dataset": "ts-node ./scripts/update-dataset.ts"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^1.5.4",
+    "classnames": "^2.5.1",
+    "html-to-image": "^1.11.11",
+    "immer": "^10.1.1",
+    "lodash-es": "^4.17.21",
+    "node-fetch": "^3.3.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zustand": "^4.5.5",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/lodash-es": "^4.17.12",
+    "@types/node": "^22.5.4",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "jsdom": "^25.0.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.2",
+    "vitest": "^2.0.5",
+    "vite-tsconfig-paths": "^5.1.2"
+  },
+  "packageManager": "pnpm@9.7.0"
+}
