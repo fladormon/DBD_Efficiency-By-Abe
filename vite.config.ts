@@ -1,25 +1,17 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import tsconfigPaths from 'vite-tsconfig-paths';
 
-export default defineConfig(({ mode }) => ({
-  plugins: [react()],
-  root: '.',
+export default defineConfig({
+  plugins: [react(), tsconfigPaths()],
   server: {
     port: 1420,
     strictPort: true,
-    hmr: {
-      overlay: false,
-    },
-    fs: {
-      strict: false,
-      allow: ['..']
-    }
+    hmr: { overlay: false },
   },
   build: {
-    target: [
-      process.env.TAURI_PLATFORM === 'windows' ? 'chrome105' : 'es2020'
-    ],
+    target: ['chrome105'],
     outDir: 'dist',
     emptyOutDir: true,
   },
-}));
+});
