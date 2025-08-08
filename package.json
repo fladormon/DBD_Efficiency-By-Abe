@@ -14,7 +14,7 @@
     "tauri:build": "vite build && cargo tauri build",
     "test": "vitest run -c vitest.config.ts",
     "test:watch": "vitest -c vitest.config.ts",
-    "update:dataset": "node --loader ts-node/esm ./scripts/update-dataset.ts"
+    "update:dataset": "node ./scripts/update-dataset.cjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^1.5.4",
