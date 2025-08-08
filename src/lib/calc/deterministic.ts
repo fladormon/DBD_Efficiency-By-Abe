@@ -1,6 +1,6 @@
 import type { DeterministicResult, DbdConstants, CompiledDataset } from '@/lib/types';
 import type { LoadoutState } from '@/store/loadoutStore';
-import { applyRuleEffects, expectedHyperfocusStacks, remapStakeOut } from './utils';
+import { applyRuleEffects, expectedHyperfocusStacks, remapStakeOut, effectivePercentsWithPing } from './utils';
 
 export function computeDeterministic({ loadout, dataset, constants }: { loadout: LoadoutState; dataset: CompiledDataset; constants: DbdConstants }): DeterministicResult {
   const baseGen = constants.base.generatorRepairSeconds;
@@ -24,8 +24,12 @@ export function computeDeterministic({ loadout, dataset, constants }: { loadout:
   const teammateIdx = Math.max(0, Math.min(constants.multipliers.teammateRepairEfficiency.length - 1, loadout.teammatesCount));
   const teamMultiplier = constants.multipliers.teammateRepairEfficiency[teammateIdx] ?? 1;
 
-  // Skill checks impact via Hyperfocus: treat as overall speed bonus proportional to expected stacks
-  const expectedStacks = expectedHyperfocusStacks(loadout.greatPercent / 100);
+  // Skill checks impact with ping and Stake Out, then Hyperfocus EV from effective Great%
+  const expectedChecks = Math.max(1, Math.floor(constants.base.generatorRepairSeconds / constants.base.skillCheckIntervalSeconds));
+  const pingAdj = effectivePercentsWithPing(loadout.greatPercent, loadout.goodPercent, loadout.failPercent, loadout.pingMs, constants);
+  const afterStake = loadout.stakeOutEnabled ? remapStakeOut(pingAdj.great, pingAdj.good, pingAdj.fail, loadout.stakeOutTokens, expectedChecks) : pingAdj;
+  const effectiveGreatP = afterStake.great / 100;
+  const expectedStacks = expectedHyperfocusStacks(effectiveGreatP);
   const hyperfocusRule = selectedEntities.flatMap(e => e.rules ?? []).find(r => r.stacks?.tokenCounter === 'hyperfocus' && r.target === 'repairSpeed');
   const hyperfocusBonusPerStack = hyperfocusRule?.stacks?.perStackValue ?? 0;
   const hyperfocusSpeed = 1 + (loadout.hyperfocusEnabled ? (expectedStacks * (hyperfocusRule?.unit === 'percent' ? hyperfocusBonusPerStack / 100 : hyperfocusBonusPerStack)) : 0);
@@ -46,9 +50,7 @@ export function computeDeterministic({ loadout, dataset, constants }: { loadout:
   const totalCharges = item?.charges ?? 0;
   const chargesUsed = Math.min(totalCharges, itemRate * healOtherTime); // example: using item to heal other for duration
 
-  // Skill check remapping (Stake Out)
-  const expectedChecks = Math.max(1, Math.floor(repairTimeSolo / constants.base.skillCheckIntervalSeconds));
-  const sc = loadout.stakeOutEnabled ? remapStakeOut(loadout.greatPercent, loadout.goodPercent, loadout.failPercent, /* tokens */ 4, expectedChecks) : { great: loadout.greatPercent, good: loadout.goodPercent, fail: loadout.failPercent };
+  // Skill check remapping (Stake Out) already applied above to compute Hyperfocus EV, if needed for UI you can expose 'afterStake'
 
   return {
     repair: { soloTimeSeconds: repairTimeSolo, teamTimeSeconds: repairTimeTeam },

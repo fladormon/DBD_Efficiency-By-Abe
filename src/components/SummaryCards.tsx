@@ -2,6 +2,7 @@ import React from 'react';
 import { useLoadoutStore } from '@/store/loadoutStore';
 import { useDatasetStore } from '@/store/datasetStore';
 import { computeDeterministic } from '@/lib/calc/deterministic';
+import { simulate } from '@/lib/calc/simulation';
 
 export default function SummaryCards() {
   const loadout = useLoadoutStore();
@@ -10,6 +11,7 @@ export default function SummaryCards() {
   if (!dataset || !constants) return null;
 
   const results = computeDeterministic({ loadout, dataset, constants });
+  const sim = loadout.simulationEnabled ? simulate({ loadout, dataset, constants, trials: loadout.simulationTrials }) : null;
 
   return (
     <div className="card">
@@ -17,7 +19,7 @@ export default function SummaryCards() {
       <div className="grid cols-2">
         <div>
           <div className="badge">Generator Repair</div>
-          <div className="small">Solo: {results.repair.soloTimeSeconds.toFixed(1)} s</div>
+          <div className="small">Solo: {results.repair.soloTimeSeconds.toFixed(1)} s {sim && `(sim avg ${sim.repairTimeSeconds.avg.toFixed(1)} s)`}</div>
           <div className="small">With team (n={loadout.teammatesCount+1}): {results.repair.teamTimeSeconds.toFixed(1)} s</div>
         </div>
         <div>

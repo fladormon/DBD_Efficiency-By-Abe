@@ -15,6 +15,7 @@ export function exportShareCode() {
       skill: { great: s.greatPercent, good: s.goodPercent, fail: s.failPercent },
       pingMs: s.pingMs,
       simulation: { enabled: s.simulationEnabled, trials: s.simulationTrials },
+      stakeOutTokens: s.stakeOutTokens
     },
   };
   const str = JSON.stringify(payload);
@@ -39,4 +40,5 @@ export function importShareCode(base64: string) {
   s.setPingMs(p.assumptions?.pingMs ?? 50);
   s.setSimulationEnabled(Boolean(p.assumptions?.simulation?.enabled));
   s.setSimulationTrials(p.assumptions?.simulation?.trials ?? 10000);
+  if (typeof p.assumptions?.stakeOutTokens === 'number') s.setStakeOutTokens(p.assumptions.stakeOutTokens);
 }

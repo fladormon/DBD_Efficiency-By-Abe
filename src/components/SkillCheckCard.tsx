@@ -13,7 +13,7 @@ export default function SkillCheckCard() {
     if (total === 100) setSkillPercents(g, gd, f);
   };
 
-  const expStacks = expectedHyperfocusStacks((greatPercent / 100));
+  const expStacks = expectedHyperfocusStacks((greatPercent / 100)); // displayed raw; deterministic uses ping/stakeout-adjusted
 
   return (
     <div className="card">
