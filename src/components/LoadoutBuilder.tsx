@@ -1,67 +1,66 @@
 import React from 'react';
 import { useDatasetStore } from '@/store/datasetStore';
 import { useLoadoutStore } from '@/store/loadoutStore';
-import Icon from './Icon';
 
 export default function LoadoutBuilder() {
   const { role, setRole, selectedCharacterId, setCharacterId, itemId, setItemId, addonIds, setAddonIds, perkIds, setPerkIds, offeringId, setOfferingId } = useLoadoutStore();
   const { characters, items, addons, perks, offerings } = useDatasetStore();
 
-  const roleToggle = (
-    <div className="row" style={{ justifyContent: 'space-between' }}>
-      <div className="section-title">Loadout Builder</div>
-      <div className="row" style={{ gap: 8 }}>
-        <button className="button" onClick={() => setRole('survivor')} disabled={role==='survivor'}>Survivor</button>
-        <button className="button" onClick={() => setRole('killer')} disabled={role==='killer'}>Killer</button>
-      </div>
-    </div>
-  );
+  const [search, setSearch] = React.useState('');
 
-  const buildSelector = (label: string, list: { id: string; name: string; icon?: string; role?: string }[], selected: string | null, onSelect: (id: string | null) => void) => (
+  const filterByRole = <T extends { role?: string; name: string }>(arr: T[]) =>
+    arr.filter(x => (!x.role || x.role === role) && x.name.toLowerCase().includes(search.toLowerCase()));
+
+  const Dropdown = ({ label, list, selected, onSelect, includeNone = true }: { label: string; list: { id: string; name: string }[]; selected: string | null; onSelect: (id: string | null) => void; includeNone?: boolean }) => (
     <div className="card">
       <div className="section-title">{label}</div>
-      <div className="grid cols-4">
-        <div className="icon" onClick={() => onSelect(null)} title="None">—</div>
-        {list.filter(x => !x.role || x.role===role).map(x => (
-          <div key={x.id} className="row" style={{ gap: 6 }}>
-            <button className="button" onClick={() => onSelect(x.id)} style={{ width: '100%' }} title={x.name}>
-              <Icon src={x.icon} alt={x.name} />
-            </button>
-          </div>
+      <select value={selected ?? ''} onChange={e => onSelect(e.target.value || null)} style={{ width: '100%' }}>
+        {includeNone && <option value="">None</option>}
+        {list.map(x => (
+          <option key={x.id} value={x.id}>{x.name}</option>
         ))}
-      </div>
-      <div className="small">Selected: {selected ?? 'None'}</div>
+      </select>
     </div>
   );
 
-  const buildMultiSelector = (label: string, list: { id: string; name: string; icon?: string; role?: string }[], selected: string[], limit: number, onChange: (ids: string[]) => void) => (
-    <div className="card">
-      <div className="section-title">{label} ({selected.length}/{limit})</div>
-      <div className="grid cols-4">
-        {list.filter(x => !x.role || x.role===role).map(x => {
-          const isSelected = selected.includes(x.id);
-          const canAdd = !isSelected && selected.length < limit;
-          return (
-            <button key={x.id} className="button" disabled={!isSelected && !canAdd} onClick={() => {
-              if (isSelected) onChange(selected.filter(id => id !== x.id));
-              else onChange([...selected, x.id]);
-            }} title={x.name}>
-              <Icon src={x.icon} alt={x.name} />
-            </button>
-          );
-        })}
+  const MultiSelectLimited = ({ label, list, selected, limit, onChange }: { label: string; list: { id: string; name: string }[]; selected: string[]; limit: number; onChange: (ids: string[]) => void; }) => {
+    const toggle = (id: string) => {
+      const isSelected = selected.includes(id);
+      if (isSelected) onChange(selected.filter(x => x !== id));
+      else if (selected.length < limit) onChange([...selected, id]);
+    };
+    return (
+      <div className="card">
+        <div className="section-title">{label} ({selected.length}/{limit})</div>
+        <div className="grid">
+          {list.map(x => (
+            <label key={x.id} className="row" style={{ justifyContent: 'space-between' }}>
+              <span>{x.name}</span>
+              <input type="checkbox" checked={selected.includes(x.id)} onChange={() => toggle(x.id)} disabled={!selected.includes(x.id) && selected.length >= limit} />
+            </label>
+          ))}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="grid" style={{ gap: 12 }}>
-      {roleToggle}
-      {buildSelector('Character', characters, selectedCharacterId, setCharacterId)}
-      {role === 'survivor' && buildSelector('Item', items, itemId, setItemId)}
-      {buildMultiSelector('Add-ons', addons, addonIds, 2, setAddonIds)}
-      {buildMultiSelector('Perks', perks, perkIds, 4, setPerkIds)}
-      {buildSelector('Offering', offerings, offeringId, setOfferingId)}
+      <div className="row" style={{ justifyContent: 'space-between' }}>
+        <div className="section-title">Loadout Builder</div>
+        <div className="row" style={{ gap: 8 }}>
+          <button className="button" onClick={() => setRole('survivor')} disabled={role==='survivor'}>Survivor</button>
+          <button className="button" onClick={() => setRole('killer')} disabled={role==='killer'}>Killer</button>
+        </div>
+      </div>
+
+      <input className="input" placeholder="Search (filters by name)" value={search} onChange={e => setSearch(e.target.value)} />
+
+      <Dropdown label="Character" list={filterByRole(characters)} selected={selectedCharacterId} onSelect={setCharacterId} includeNone={true} />
+      {role === 'survivor' && <Dropdown label="Item" list={filterByRole(items)} selected={itemId} onSelect={setItemId} includeNone={true} />}
+      <MultiSelectLimited label="Add-ons" list={filterByRole(addons)} selected={addonIds} limit={2} onChange={setAddonIds} />
+      <MultiSelectLimited label="Perks" list={filterByRole(perks)} selected={perkIds} limit={4} onChange={setPerkIds} />
+      <Dropdown label="Offering" list={filterByRole(offerings)} selected={offeringId} onSelect={setOfferingId} includeNone={true} />
     </div>
   );
 }
