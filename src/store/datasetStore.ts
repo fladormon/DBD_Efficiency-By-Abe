@@ -31,45 +31,70 @@ async function fetchText(url: string): Promise<string> {
   return await res.text();
 }
 
-function extractListFromWiki(html: string, pattern: RegExp): { id: string; name: string }[] {
-  const out: { id: string; name: string }[] = [];
-  const rx = new RegExp(pattern, 'gi');
-  let m: RegExpExecArray | null;
-  while ((m = rx.exec(html))) {
-    const name = (m[1] || m[2] || '').trim();
-    if (!name) continue;
-    const id = name.toLowerCase().replace(/[^a-z0-9]+/g, '_');
-    out.push({ id, name });
+function normalizeId(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+}
+
+function absol(url: string): string {
+  if (!url) return url;
+  if (url.startsWith('http')) return url;
+  return `https://deadbydaylight.wiki.gg${url}`;
+}
+
+function parseListWithImages(html: string): { id: string; name: string; icon?: string }[] {
+  const dom = new DOMParser().parseFromString(html, 'text/html');
+  const root = dom.querySelector('.mw-parser-output') || dom.body;
+  const results: { id: string; name: string; icon?: string }[] = [];
+  root.querySelectorAll('a').forEach((a) => {
+    const img = a.querySelector('img');
+    const title = a.getAttribute('title') || a.textContent || '';
+    const name = title.trim();
+    if (!name) return;
+    // Skip non-content anchors
+    if (name.length < 2) return;
+    const icon = img ? absol(img.getAttribute('src') || '') : undefined;
+    results.push({ id: normalizeId(name), name, icon });
+  });
+  // Deduplicate by id, prefer entries with icons
+  const map = new Map<string, { id: string; name: string; icon?: string }>();
+  for (const r of results) {
+    const ex = map.get(r.id);
+    if (!ex || (!ex.icon && r.icon)) map.set(r.id, r);
   }
-  return out;
+  return Array.from(map.values());
 }
 
 async function scrapeWiki(): Promise<{ ds: CompiledDataset; meta: DatasetMeta }> {
-  // Basic approach: fetch summary pages and extract names.
-  // Perks: /wiki/Perk (table list)
-  // Killers: /wiki/Killers, Survivors: /wiki/Survivors
-  const [perksHtml, killersHtml, survivorsHtml] = await Promise.all([
-    fetchText('https://deadbydaylight.wiki.gg/wiki/Perk'),
-    fetchText('https://deadbydaylight.wiki.gg/wiki/Killers'),
-    fetchText('https://deadbydaylight.wiki.gg/wiki/Survivors'),
+  const base = 'https://deadbydaylight.wiki.gg';
+  const [perksHtml, killersHtml, survivorsHtml, itemsHtml, offeringsHtml, addonsHtml] = await Promise.all([
+    fetchText(`${base}/wiki/Perk`),
+    fetchText(`${base}/wiki/Killers`),
+    fetchText(`${base}/wiki/Survivors`),
+    fetchText(`${base}/wiki/Item`),
+    fetchText(`${base}/wiki/Offering`),
+    // Add-ons may be split; try a category page. If it 404s, we catch later.
+    fetchText(`${base}/wiki/Add-ons`).catch(() => ''),
   ]);
-  // Extremely conservative regexes to match link titles/captions in tables/lists
-  const perks = extractListFromWiki(perksHtml, /title="(?:Hex:\s*)?([^"]+?)"/);
-  const killers = extractListFromWiki(killersHtml, /title="The\s([^"]+?)"/);
-  const survivors = extractListFromWiki(survivorsHtml, /title="([A-Z][a-z]+\s[A-Z][a-z]+)"/);
+
+  const perkEntries = parseListWithImages(perksHtml);
+  const killerEntries = parseListWithImages(killersHtml).map(e => ({ ...e, name: e.name.startsWith('The ') ? e.name : `The ${e.name}` }));
+  const survivorEntries = parseListWithImages(survivorsHtml);
+  const itemEntries = parseListWithImages(itemsHtml);
+  const offeringEntries = parseListWithImages(offeringsHtml);
+  const addonEntries = addonsHtml ? parseListWithImages(addonsHtml) : [];
 
   const characters = [
-    ...killers.map(k => ({ type: 'character', id: `killer_${k.id}`, name: `The ${k.name}`, role: 'killer' })),
-    ...survivors.map(s => ({ type: 'character', id: `survivor_${s.id}`, name: s.name, role: 'survivor' })),
+    ...killerEntries.map(k => ({ type: 'character', id: `killer_${k.id}`, name: k.name, icon: k.icon, role: 'killer' })),
+    ...survivorEntries.map(s => ({ type: 'character', id: `survivor_${s.id}`, name: s.name, icon: s.icon, role: 'survivor' })),
   ] as any[];
 
   const ds: CompiledDataset = {
     version: 'wiki-scrape',
     characters,
-    items: [],
-    addons: [],
-    perks: perks.map(p => ({ type: 'perk', id: p.id, name: p.name })) as any[],
-    offerings: [],
+    items: itemEntries.map(i => ({ type: 'item', id: i.id, name: i.name, icon: i.icon })) as any[],
+    addons: addonEntries.map(a => ({ type: 'addon', id: a.id, name: a.name, icon: a.icon })) as any[],
+    perks: perkEntries.map(p => ({ type: 'perk', id: p.id, name: p.name, icon: p.icon })) as any[],
+    offerings: offeringEntries.map(o => ({ type: 'offering', id: o.id, name: o.name, icon: o.icon })) as any[],
   };
   const meta: DatasetMeta = { version: ds.version, lastUpdated: new Date().toISOString() };
   return { ds, meta };
@@ -89,7 +114,6 @@ export const useDatasetStore = create<DatasetState>((set, get) => ({
   checkingUpdate: false,
   loadDataset: async () => {
     try {
-      // load from localStorage first
       const fromLocal = loadCompiledDataset();
       const [constRes, dsRes, metaRes] = await Promise.all([
         fetch(DEFAULT_PATHS.constants).then(r => r.json()),
@@ -118,10 +142,8 @@ export const useDatasetStore = create<DatasetState>((set, get) => ({
   checkForUpdates: async () => {
     set({ checkingUpdate: true });
     try {
-      // Scrape the wiki and persist
       const { ds, meta } = await scrapeWiki();
       saveCompiledDataset(ds, meta);
-      // reload into store
       set({
         dataset: ds,
         characters: ds.characters,
